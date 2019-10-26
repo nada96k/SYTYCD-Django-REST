@@ -1,13 +1,13 @@
 from datetime import datetime
 
 from rest_framework import serializers
-
+from django.contrib.auth.models import User
 from .models import Hotel, Booking
 
 
 class HotelsListSerializer(serializers.ModelSerializer):
 	details = serializers.HyperlinkedIdentityField(
-		view_name = "hotel-detail",
+		view_name = "hotel-details",
 		lookup_field = "id",
 		lookup_url_kwarg = "hotel_id"
 		)
@@ -24,7 +24,7 @@ class HotelDetailsSerializer(serializers.ModelSerializer):
 		)
 	class Meta:
 		model = Hotel
-		fields = ["name", "location", "price", "book"]
+		fields = ["name", "location", "price_per_night", "book"]
 
 
 class BookHotelSerializer(serializers.ModelSerializer):
@@ -47,7 +47,7 @@ class BookingDetailsSerializer(serializers.ModelSerializer):
 		)
 	class Meta:
 		model = Booking
-		fields = ["hotel", "check_in", 'number_of_nights', 'modify']
+		fields = ["hotel", "check_in", 'number_of_nights', 'modify', 'cancel']
 
 
 class PastBookingDetailsSerializer(serializers.ModelSerializer):
@@ -62,7 +62,7 @@ class UserSerializer(serializers.ModelSerializer):
 	past_bookings = serializers.SerializerMethodField()
 	class Meta:
 		model = User
-		fields = ["username", "name", "email", "past_bookings"]
+		fields = ["username", "first_name", "last_name", "email", "past_bookings"]
 
 	def name(self, obj):
 		return "%s %s"%(obj.first_name, obj.last_name)
@@ -70,7 +70,7 @@ class UserSerializer(serializers.ModelSerializer):
 	def get_past_bookings(self, obj):
 		today = datetime.today()
 		bookings = obj.bookings.filter(check_in__lt=today)
-		return PastBookingDetailsSerializer(bookings).data
+		return PastBookingDetailsSerializer(bookings, many=True).data
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -83,6 +83,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         username = validated_data['username']
         password = validated_data['password']
         new_user = User(username=username)
+        new_user.set_password(password)
         new_user.save()
         return validated_data
 
